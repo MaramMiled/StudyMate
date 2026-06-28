@@ -1,0 +1,32 @@
+{
+  "sessions": [
+    {
+      "id": "1782219466255",
+      "name": "Untitled notebook",
+      "subject": "",
+      "files": [
+        {
+          "name": "Ajouter un titre (7).pdf",
+          "type": "application/pdf",
+          "content": [
+            "[Could not extract text]"
+          ]
+        }
+      ],
+      "messages": [],
+      "createdAt": "2026-06-23T12:57:46.255Z"
+    },
+    {
+      "id": "1782598010360",
+      "name": "Untitled notebook",
+      "subject": "",
+      "files": [],
+      "messages": [],
+      "settings": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0.7
+      },
+      "createdAt": "2026-06-27T22:06:50.360Z"
+    }
+  ]
+}
