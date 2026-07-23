@@ -32,8 +32,7 @@ const createSession = async () => {
     "Content-Type": "application/json",
   },
     body: JSON.stringify({
-      name: 'Untitled notebook',
-      subject: '',
+      title: 'Untitled notebook',
       user_id: user?.id,   
       files: [],
     }),

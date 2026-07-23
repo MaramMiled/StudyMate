@@ -92,16 +92,19 @@ useEffect(() => {
 
 useEffect(() => {
   if (!session) return;
+  console.log("FILES FROM BACKEND:", session.files);
 
-  setSessionTitle(session.name || 'Unnamed session');
-  setTitleInput(session.name || 'Unnamed session');
+  setSessionTitle(session.title || 'Unnamed session');
+  setTitleInput(session.title || 'Unnamed session');
 
+console.log(session.files);
   setFiles(
   (session.files || []).map(f => ({
-    id: crypto.randomUUID(),
-    name: f.name,
+    id: f.id,
+    name: f.title,
     size: null,
-    content: f.content
+    content: f.content,
+    uploaded: true,
   }))
 );
 }, [session]);
@@ -111,7 +114,7 @@ useEffect(() => {
 
   const user = propUser || (isLoggedIn ? mockUser : null);
 
-  const [sessionTitle, setSessionTitle] = useState(session?.name || 'Unnamed session');
+  const [sessionTitle, setSessionTitle] = useState(session?.title || 'Unnamed session');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(sessionTitle);
   const [uploaded, setUploaded] = useState(false);
@@ -124,15 +127,13 @@ useEffect(() => {
   if (!id) return;
 
   const uploadFiles = async () => {
-    const pendingFiles = files.filter(f => f.file && !f.uploaded);
+  const pendingFiles = files.filter(f => f.file && !f.uploaded);
 
-    if (pendingFiles.length === 0) return;
+  if (pendingFiles.length === 0) return;
 
+  for (const f of pendingFiles) {
     const formData = new FormData();
-
-    pendingFiles.forEach(f => {
-      formData.append("files", f.file);
-    });
+    formData.append("file", f.file);
 
     const res = await fetch(`http://localhost:5000/sessions/${id}/files`, {
       method: "POST",
@@ -143,21 +144,38 @@ useEffect(() => {
     console.log("UPLOAD RESPONSE:", data);
 
     setFiles(prev =>
-      prev.map(f =>
-        pendingFiles.some(p => p.id === f.id)
-          ? { ...f, uploaded: true }
-          : f
+      prev.map(file =>
+        file.id === f.id ? { ...file, uploaded: true } : file
       )
     );
-  };
+  }
+};
 
   uploadFiles();
 }, [files, id]);
 
-  const handleTitleSave = () => {
-    setSessionTitle(titleInput.trim() || 'Unnamed session');
-    setEditingTitle(false);
-  };
+
+  const handleTitleSave = async () => {
+  const newTitle = titleInput.trim() || "Unnamed session";
+
+  setSessionTitle(newTitle);
+  setEditingTitle(false);
+
+  try {
+    await fetch(`http://localhost:5000/sessions/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: newTitle,
+      }),
+    });
+
+  } catch (err) {
+    console.error("TITLE UPDATE ERROR:", err);
+  }
+};
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -285,11 +303,14 @@ if (!session) return <div style={{ padding: 40 }}>Session not found</div>;
           <h4>Studio</h4>
 
           <StudioBlock title="Summary">
-            <SummarySection hasFiles={hasFiles} />
+            <SummarySection hasFiles={hasFiles} documentId={files[0]?.id}/>
           </StudioBlock>
 
           <StudioBlock title="Quiz">
-            <QuizSection hasFiles={hasFiles} />
+            <QuizSection 
+              hasFiles={hasFiles}
+              documentId={files[0]?.id}
+            />
           </StudioBlock>
 
           <StudioBlock title="Planner">

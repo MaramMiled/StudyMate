@@ -1,12 +1,12 @@
-import fs from "fs";
-import { createRequire } from "module";
+import { getEmbedding } from "./utils/embeddings.js";
 
-const require = createRequire(import.meta.url);
+const test = async () => {
+  const embedding = await getEmbedding(
+    "Newton's first law states that objects remain at rest unless acted upon by a force."
+  );
 
-const { PDFParse } = require("pdf-parse");
+  console.log("Embedding size:", embedding.length);
+  console.log("First values:", embedding.slice(0, 5));
+};
 
-console.log(PDFParse);
-
-const parser = new PDFParse();
-
-console.log(parser);
+test();

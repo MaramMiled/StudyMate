@@ -1,21 +1,57 @@
 import React, { useState } from 'react';
 
 const summaryTypes = [
-  { id: 'short', label: 'Short Summary'},
-  { id: 'detailed', label: 'Detailed Summary'},
-  { id: 'keypoints', label: 'Key Points'},
-  { id: 'definitions', label: 'Definitions'},
+  { id: 'short', label: 'Short Summary' },
+  { id: 'detailed', label: 'Detailed Summary' },
+  { id: 'keypoints', label: 'Key Points' },
+  { id: 'definitions', label: 'Definitions' },
 ];
 
-export default function SummarySection({ hasFiles }) {
+export default function SummarySection({ hasFiles, documentId }) {
   const [selected, setSelected] = useState(null);
-  const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleGenerate = () => {
-    if (!selected || !hasFiles) return;
+  const [summary, setSummary] = useState(null);
+
+  const handleGenerate = async () => {
+      console.log("SUMMARY DATA:", {
+    selected,
+    hasFiles,
+    documentId
+  });
+  
+    if (!selected || !hasFiles || !documentId) return;
+
     setLoading(true);
-    setTimeout(() => { setLoading(false); setGenerated(true); }, 1400);
+    setSummary(null);
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/documents/${documentId}/summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: selected,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error);
+      }
+
+      setSummary(data);
+
+    } catch (err) {
+      console.error("SUMMARY ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,7 +60,10 @@ export default function SummarySection({ hasFiles }) {
         {summaryTypes.map(type => (
           <button
             key={type.id}
-            onClick={() => { setSelected(type.id); setGenerated(false); }}
+            onClick={() => {
+              setSelected(type.id);
+              setSummary(null);
+            }}
             style={{
               padding: '10px 12px',
               borderRadius: 'var(--radius-sm)',
@@ -71,7 +110,7 @@ export default function SummarySection({ hasFiles }) {
         </p>
       )}
 
-      {generated && !loading && (
+      {summary && !loading && (
         <div style={{
           marginTop: 12,
           padding: '12px',
@@ -81,12 +120,18 @@ export default function SummarySection({ hasFiles }) {
           fontSize: 12.5,
           color: 'var(--text-secondary)',
           lineHeight: 1.6,
-          animation: 'slideUp 0.18s ease',
+          whiteSpace: "pre-line",
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--accent-purple)', marginBottom: 6, fontSize: 12 }}>
-            ✓ {summaryTypes.find(s => s.id === selected)?.label} generated
+          <div style={{
+            fontWeight: 600,
+            color: 'var(--accent-purple)',
+            marginBottom: 8,
+            fontSize: 12
+          }}>
+            ✓ {summaryTypes.find(s => s.id === selected)?.label}
           </div>
-          This is a mock summary of your uploaded documents. In the live version, AI would analyze your PDFs, slides, and notes to produce this content.
+
+          {summary.content}
         </div>
       )}
     </div>

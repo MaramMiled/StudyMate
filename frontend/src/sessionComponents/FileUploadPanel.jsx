@@ -11,9 +11,14 @@ const fileTypeConfig = {
   png: {label: 'IMG' },
 };
 
-function getFileConfig(filename) {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  return fileTypeConfig[ext] || {color: '#A78BFA', label: ext?.toUpperCase() || 'FILE' };
+function getFileConfig(filename = "") {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  return (
+    fileTypeConfig[ext] || {
+      color: "#A78BFA",
+      label: ext?.toUpperCase() || "FILE",
+    }
+  );
 }
 
 function FileItem({ file, onRemove }) {
@@ -45,7 +50,7 @@ function FileItem({ file, onRemove }) {
         )}
       </div>
       <button
-        onClick={() => onRemove(file.name)}
+        onClick={() => onRemove(file)}
         style={{
           width: 20, height: 20,
           borderRadius: '50%',
@@ -92,9 +97,22 @@ export default function FileUploadPanel({ files, onFilesChange }) {
   if (e.target.files?.length) addFiles(e.target.files);
 };
 
-  const removeFile = (name) => {
-    onFilesChange(prev => prev.filter(f => f.name !== name));
-  };
+const removeFile = async (file) => {
+  if (!file) {
+    console.error("No file received");
+    return;
+  }
+
+  if (file.uploaded) {
+    const res = await fetch(`http://localhost:5000/files/${file.id}`, {
+  method: "DELETE",
+});
+
+console.log("DELETE STATUS:", res.status);
+  }
+
+  onFilesChange(prev => prev.filter(f => f.id !== file.id));
+};
 
   const quickUpload = (accept) => {
   if (!fileInputRef.current) return;

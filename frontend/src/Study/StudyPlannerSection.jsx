@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 export default function StudyPlannerSection() {
   const [examDate, setExamDate] = useState('');
   const [dailyTime, setDailyTime] = useState(2);
-  const [generated, setGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -12,20 +12,43 @@ export default function StudyPlannerSection() {
     ? Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!examDate || daysUntil <= 0) return;
-    setLoading(true);
-    setTimeout(() => { setLoading(false); setGenerated(true); }, 1400);
-  };
 
-  const mockPlan = daysUntil > 0
-    ? [
-        { phase: 'Review', days: Math.floor(daysUntil * 0.4), color: 'var(--accent-purple)' },
-        { phase: 'Practice', days: Math.floor(daysUntil * 0.35), color: 'var(--accent-cyan)' },
-        { phase: 'Weak areas', days: Math.floor(daysUntil * 0.15), color: 'var(--accent-amber)' },
-        { phase: 'Final revision', days: Math.max(1, Math.floor(daysUntil * 0.1)), color: 'var(--accent-green)' },
-      ]
-    : [];
+    setLoading(true);
+    setPlan(null);
+
+    try {
+      const res = await fetch(
+        "http://localhost:5000/planner",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            exam_date: examDate,
+            daily_hours: dailyTime,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error);
+      }
+
+      console.log("PLAN DATA:", data);
+
+      setPlan(data);
+
+    } catch (err) {
+      console.error("PLANNER ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -106,7 +129,7 @@ export default function StudyPlannerSection() {
         ) : 'Generate study plan'}
       </button>
 
-      {generated && !loading && mockPlan.length > 0 && (
+      {plan && !loading && (
         <div style={{
           background: 'var(--bg-card)',
           borderRadius: 'var(--radius-sm)',
@@ -122,22 +145,42 @@ export default function StudyPlannerSection() {
               {dailyTime}h/day · {Math.round(daysUntil * dailyTime)} total hours
             </div>
           </div>
-          {mockPlan.map((phase, i) => (
+          {plan.sessions.map((session, i) => (
             <div
-              key={phase.phase}
+              key={i}
               style={{
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '9px 12px',
-                borderBottom: i < mockPlan.length - 1 ? '1px solid var(--border-light)' : 'none',
+                borderBottom: '1px solid var(--border-light)'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: phase.color }} />
-                <span style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>{phase.phase}</span>
+
+              <div>
+                <div style={{
+                  fontSize: 12.5,
+                  color: 'var(--text-primary)'
+                }}>
+                  Study session
+                </div>
+
+                <div style={{
+                  fontSize: 11.5,
+                  color: 'var(--text-tertiary)'
+                }}>
+                  {session.start_time}
+                </div>
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{phase.days}d</span>
+
+
+              <div style={{
+                fontSize: 12,
+                color: 'var(--text-tertiary)'
+              }}>
+                {session.duration} min
+              </div>
+
+
             </div>
           ))}
         </div>

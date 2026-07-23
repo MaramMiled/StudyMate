@@ -11,24 +11,20 @@ export default function App() {
   const [sessions, setSessions] = useState([]);
 
   const handleLogin = async (credentialResponse) => {
-  try {
-    const res = await fetch("http://localhost:5000/auth/google", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: credentialResponse.credential,
-      }),
-    });
+  const res = await fetch("http://localhost:5000/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      token: credentialResponse.credential,
+    }),
+  });
 
-    const user = await res.json();
+  const user = await res.json();
 
-    setUser(user);
-    setIsLoggedIn(true);
+  setUser(user);
+  setIsLoggedIn(true);
 
-    localStorage.setItem("user", JSON.stringify(user));
-  } catch (err) {
-    console.log("Login failed:", err);
-  }
+  localStorage.setItem("user", JSON.stringify(user));
 };
 
 const handleLogout = () => {
@@ -41,7 +37,7 @@ const handleLogout = () => {
 };
 
   const addSession = async (session) => {
-  const res = await fetch('http://localhost:5000/sessions', {
+  const res = await fetch(`http://localhost:5000/sessions?user_id=${user.id}`, {
     method: 'POST',
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

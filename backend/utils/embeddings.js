@@ -1,17 +1,15 @@
-import OpenAI from "openai";
+import { HfInference } from "@huggingface/inference";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const hf = new HfInference(process.env.HF_TOKEN);
 
 export async function getEmbedding(text) {
-  const res = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: text,
+  const result = await hf.featureExtraction({
+    model: "sentence-transformers/all-MiniLM-L6-v2",
+    inputs: text,
   });
 
-  return res.data[0].embedding;
+  return result;
 }

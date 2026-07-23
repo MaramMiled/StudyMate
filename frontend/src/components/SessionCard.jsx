@@ -6,118 +6,163 @@ export default function SessionCard({ session }) {
   const [hover, setHover] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  return (
+  const handleAction = async (action, sessionId) => {
+    if (action === 'Rename') {
+      const newTitle = prompt('Enter new session name');
+      if (!newTitle) return;
+
+      await fetch(`http://localhost:5000/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newTitle,
+        }),
+      });
+
+      window.location.reload();
+
+    }
+
+    if (action === 'Duplicate') {
+      await fetch(`http://localhost:5000/sessions/${sessionId}/duplicate`, {
+        method: "POST",
+      });
+
+      window.location.reload();
+    }
+
+    if (action === 'Delete') {
+      await fetch(`http://localhost:5000/sessions/${session.id}`, {
+        method: 'DELETE',
+      });
+
+      window.location.reload();
+    }
+
+    setMenuOpen(false);
+  };
+
+return (
+  <div
+    onClick={() => navigate(`/session/${session.id}`)}
+    onMouseEnter={() => setHover(true)}
+    onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
+    style={{
+      background: hover ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-md)',
+      padding: 16,
+      cursor: 'pointer',
+      transition: 'background 0.15s, border-color 0.15s',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14,
+      minHeight: 140,
+      position: 'relative',
+    }}
+  >
     <div
-      onClick={() => navigate(`/session/${session.id}`)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setMenuOpen(false); }}
       style={{
-        background: hover ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        padding: 16,
-        cursor: 'pointer',
-        transition: 'background 0.15s, border-color 0.15s',
         display: 'flex',
-        flexDirection: 'column',
-        gap: 14,
-        minHeight: 140,
-        position: 'relative',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 10,
       }}
     >
+      {/* Title */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 10,
+          fontSize: 14.5,
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          lineHeight: 1.4,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          flex: 1,
         }}
       >
-        {/* Title */}
-        <div
+        {session.title || "Untitled notebook"}
+      </div>
+
+      {/* Menu button */}
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            setMenuOpen(o => !o);
+          }}
           style={{
-            fontSize: 14.5,
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            lineHeight: 1.4,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            flex: 1,
+            width: 26,
+            height: 26,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 6,
+            color: 'var(--text-tertiary)',
+            background: menuOpen ? 'var(--bg-elevated)' : 'transparent',
+            transition: 'background 0.12s',
           }}
         >
-          {session.name}
-        </div>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="3" r="1.3" fill="currentColor" />
+            <circle cx="8" cy="8" r="1.3" fill="currentColor" />
+            <circle cx="8" cy="13" r="1.3" fill="currentColor" />
+          </svg>
+        </button>
 
-        {/* Menu button */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              setMenuOpen(o => !o);
-            }}
+        {menuOpen && (
+          <div
+            onClick={e => e.stopPropagation()}
             style={{
-              width: 26,
-              height: 26,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 6,
-              color: 'var(--text-tertiary)',
-              background: menuOpen ? 'var(--bg-elevated)' : 'transparent',
-              transition: 'background 0.12s',
+              position: 'absolute',
+              top: 30,
+              right: 0,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: 4,
+              zIndex: 5,
+              minWidth: 120,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="3" r="1.3" fill="currentColor" />
-              <circle cx="8" cy="8" r="1.3" fill="currentColor" />
-              <circle cx="8" cy="13" r="1.3" fill="currentColor" />
-            </svg>
-          </button>
-
-          {menuOpen && (
-            <div
-              onClick={e => e.stopPropagation()}
-              style={{
-                position: 'absolute',
-                top: 30,
-                right: 0,
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                padding: 4,
-                zIndex: 5,
-                minWidth: 120,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-              }}
-            >
-              {['Rename', 'Duplicate', 'Delete'].map(action => (
-                <div
-                  key={action}
-                  style={{
-                    padding: '7px 10px',
-                    fontSize: 12.5,
-                    borderRadius: 5,
-                    color:
-                      action === 'Delete'
-                        ? 'var(--accent-red)'
-                        : 'var(--text-secondary)',
-                  }}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {action}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-        {session.lastUpdated} · {session.fileCount} source{session.fileCount !== 1 ? 's' : ''}
+            {['Rename', 'Duplicate', 'Delete'].map(action => (
+              <div
+                key={action}
+                style={{
+                  padding: '7px 10px',
+                  fontSize: 12.5,
+                  borderRadius: 5,
+                  color:
+                    action === 'Delete'
+                      ? 'var(--accent-red)'
+                      : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => handleAction(action, session.id)}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--bg-elevated)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {action}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
-  );
+
+    {/* Footer */}
+    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+      {session.lastUpdated} · {session.fileCount} source{session.fileCount !== 1 ? 's' : ''}
+    </div>
+  </div>
+);
 }

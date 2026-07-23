@@ -1,27 +1,112 @@
 import React, { useState } from 'react';
 
 const quizTypes = [
-  { id: 'mcq', label: 'Multiple Choice'},
-  { id: 'truefalse', label: 'True / False'},
-  { id: 'open', label: 'Open Questions'},
-  { id: 'flashcards', label: 'Flashcards'},
-  { id: 'fill', label: 'Fill in the Blanks'},
+  { id: 'mcq', label: 'Multiple Choice' },
+  { id: 'truefalse', label: 'True / False' },
+  { id: 'open', label: 'Open Questions' },
+  { id: 'flashcards', label: 'Flashcards' },
+  { id: 'fill', label: 'Fill in the Blanks' },
 ];
 
 const difficulties = ['Easy', 'Medium', 'Hard'];
 const difficultyColors = ['var(--accent-green)', 'var(--accent-amber)', 'var(--accent-red)'];
 
-export default function QuizSection({ hasFiles }) {
+export default function QuizSection({ hasFiles, documentId }) {
   const [selectedType, setSelectedType] = useState(null);
   const [difficulty, setDifficulty] = useState(1);
   const [numQuestions, setNumQuestions] = useState(10);
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [quiz, setQuiz] = useState(null);
 
-  const handleGenerate = () => {
-    if (!selectedType || !hasFiles) return;
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const selectAnswer = (index, answer) => {
+    setAnswers(prev => ({
+      ...prev,
+      [index]: answer
+    }));
+  };
+
+const submitQuiz = async () => {
+
+  let score = 0;
+
+  quiz.questions.forEach((q,index)=>{
+    if(answers[index] === q.answer){
+      score++;
+    }
+  });
+
+  console.log("SCORE:", score);
+
+  try {
+
+    const res = await fetch(
+      "http://localhost:5000/quizzes/submit",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quiz_id: quiz.quiz_id,
+          answers,
+          score
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    console.log("SUBMIT RESULT:", data);
+
+    setSubmitted(true);
+
+  } catch(err) {
+    console.error("SUBMIT ERROR:", err);
+  }
+
+};
+
+  const handleGenerate = async () => {
+    if (!selectedType || !hasFiles || !documentId) return;
+
     setLoading(true);
-    setTimeout(() => { setLoading(false); setGenerated(true); }, 1700);
+    setQuiz(null);
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/documents/${documentId}/quiz`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            difficulty: difficulties[difficulty].toLowerCase(),
+            number: numQuestions,
+            type: selectedType,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error);
+      }
+
+      console.log("QUIZ DATA:", data);
+
+      setQuiz(data);
+
+    } catch (err) {
+      console.error("QUIZ ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,7 +195,7 @@ export default function QuizSection({ hasFiles }) {
         </p>
       )}
 
-      {generated && !loading && (
+      {quiz && !loading && (
         <div style={{
           marginTop: 12,
           padding: '12px',
@@ -120,23 +205,117 @@ export default function QuizSection({ hasFiles }) {
           fontSize: 12.5,
           color: 'var(--text-secondary)',
           lineHeight: 1.6,
-          animation: 'slideUp 0.18s ease',
         }}>
-          <div style={{ fontWeight: 600, color: 'var(--accent-green)', marginBottom: 6 }}>
-            ✓ {numQuestions} {quizTypes.find(t => t.id === selectedType)?.label} questions ready
+
+          <div style={{
+            fontWeight: 600,
+            color: 'var(--accent-green)',
+            marginBottom: 10
+          }}>
+            ✓ Quiz generated
           </div>
-          <span>Difficulty: {difficulties[difficulty]}</span>
-          <div style={{ marginTop: 10 }}>
-            <button style={{
-              padding: '6px 16px', fontSize: 12, fontWeight: 600,
-              background: 'var(--accent-green)', color: '#0F1A0F',
-              borderRadius: 99,
-            }}>
-              Start quiz →
-            </button>
-          </div>
+
+
+          {quiz.questions.map((q, index) => (
+            <div
+              key={index}
+              style={{
+                marginBottom: 20,
+                paddingBottom: 15,
+                borderBottom: "1px solid var(--border)"
+              }}
+            >
+
+              <strong>
+                {index + 1}. {q.question}
+              </strong>
+
+
+              {/* MCQ */}
+              {q.options && q.options.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {q.options.map(option => (
+                    <button
+                      key={option}
+                      onClick={() => selectAnswer(index, option)}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        marginBottom: 6,
+                        padding: "8px",
+                        borderRadius: 8,
+                        border:
+                          answers[index] === option
+                            ? "1px solid var(--accent-purple)"
+                            : "1px solid var(--border)",
+                        background:
+                          answers[index] === option
+                            ? "rgba(167,139,250,0.08)"
+                            : "transparent"
+                      }}
+                    >
+                      ○ {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+
+              {/* True / False */}
+              {selectedType === "truefalse" && (
+                <div style={{ marginTop: 10 }}>
+                  {["True", "False"].map(option => (
+                    <button
+                      key={option}
+                      onClick={() => selectAnswer(index, option)}
+                      style={{
+                        marginRight: 8,
+                        padding: "8px 15px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)"
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+
+              {/* Open questions */}
+              {selectedType === "open" && (
+                <textarea
+                  value={answers[index] || ""}
+                  onChange={(e) =>
+                    selectAnswer(index, e.target.value)
+                  }
+                  placeholder="Your answer..."
+                  style={{
+                    width: "100%",
+                    marginTop: 10,
+                    minHeight: 70
+                  }}
+                />
+              )}
+
+            </div>
+          ))}
+        <button
+          onClick={submitQuiz}
+          style={{
+            width: "100%",
+            padding: 10,
+            borderRadius: 20,
+            background: "var(--accent-green)"
+          }}
+        >
+          Submit Quiz
+        </button>
+
         </div>
       )}
+
     </div>
   );
 }

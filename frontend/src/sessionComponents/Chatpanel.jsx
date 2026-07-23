@@ -135,12 +135,32 @@ const sendMessage = async () => {
   if (!trimmed || !id) return;
 
   setInput('');
+
+  const tempUserMessage = {
+    id: Date.now(),
+    role: "user",
+    content: trimmed,
+    timestamp: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+
+  // Show user message immediately
+  setMessages(prev => [
+    ...prev,
+    tempUserMessage,
+  ]);
+
+  // Then show typing indicator
   setIsTyping(true);
 
   try {
     const res = await fetch(`http://localhost:5000/sessions/${id}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify({ content: trimmed }),
     });
 
@@ -148,13 +168,13 @@ const sendMessage = async () => {
 
     console.log("RESPONSE:", data);
 
-    if (!data.userMessage || !data.aiMessage) {
+    if (!data.aiMessage) {
       throw new Error("Invalid response from server");
     }
 
+    // Only add AI response
     setMessages(prev => [
       ...prev,
-      data.userMessage,
       data.aiMessage,
     ]);
 
