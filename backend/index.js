@@ -743,17 +743,17 @@ app.post("/documents/:id/summary", async (req, res) => {
     const { type } = req.body;
 
     const allowedTypes = [
-  "short",
-  "detailed",
-  "keypoints",
-  "definitions"
-];
+      "short",
+      "detailed",
+      "keypoints",
+      "definitions"
+    ];
 
-if (!allowedTypes.includes(type)) {
-  return res.status(400).json({
-    error: "Invalid summary type"
-  });
-}
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({
+        error: "Invalid summary type"
+      });
+    }
 
     const existing = await pool.query(
       `
@@ -785,7 +785,7 @@ if (!allowedTypes.includes(type)) {
     }
 
     const document = documentResult.rows[0];
-    const content = document.content.slice(0,15000);
+    const content = document.content.slice(0, 15000);
     let prompt = "";
 
     switch (type) {
@@ -964,29 +964,29 @@ Required format:
 
 Special rules:
 
-TYPE: truefalse
+TYPE: true_false
 - The question must be a statement.
 - The answer must be only "True" or "False".
 - options must be [].
 
 
-TYPE: mcq
+TYPE: multiple_choice
 - options must contain 4 choices.
 - answer must match one option.
 
 
-TYPE: open
+TYPE: open_question
 - options must be [].
 - answer is a possible correct answer.
 
 
-TYPE: flashcards
+TYPE: flashcard
 - question is the front.
 - answer is the explanation.
 - options must be [].
 
 
-TYPE: fill
+TYPE: fill_blank
 - question must contain ___.
 - answer is the missing word.
 - options must be [].
@@ -1032,6 +1032,43 @@ ${document.content}
     );
 
     const questions = JSON.parse(jsonString);
+    const fixedQuestions = questions.map(q => {
+
+      if (type === "true_false") {
+        return {
+          ...q,
+          options: []
+        };
+      }
+
+
+      if (type === "open_question") {
+        return {
+          ...q,
+          options: []
+        };
+      }
+
+
+      if (type === "flashcard") {
+        return {
+          ...q,
+          options: []
+        };
+      }
+
+
+      if (type === "fill_blank") {
+        return {
+          ...q,
+          options: []
+        };
+      }
+
+
+      return q;
+
+    });
 
     // 4. Create quiz
 
@@ -1055,7 +1092,7 @@ ${document.content}
 
     // 5. Save questions
 
-    for (const q of questions) {
+    for (const q of fixedQuestions) {
 
       await pool.query(
         `
@@ -1080,15 +1117,16 @@ ${document.content}
 
     }
 
-
-
     res.json({
       quiz_id: quiz.id,
-      questions
+      questions: fixedQuestions.map(q => ({
+        ...q,
+        type
+      }))
     });
 
 
-  } catch(err){
+  } catch (err) {
 
     console.error("QUIZ ERROR:", err);
 
@@ -1100,7 +1138,7 @@ ${document.content}
   }
 });
 
-app.post("/quizzes/submit", async(req,res)=>{
+app.post("/quizzes/submit", async (req, res) => {
   try {
 
     const {
@@ -1122,28 +1160,28 @@ app.post("/quizzes/submit", async(req,res)=>{
     });
 
 
-  } catch(err){
+  } catch (err) {
     console.error(err);
 
     res.status(500).json({
-      error:"Failed to submit quiz"
+      error: "Failed to submit quiz"
     });
   }
 });
 
-app.post("/planner", async(req,res)=>{
+app.post("/planner", async (req, res) => {
 
-try {
+  try {
 
-const {
- exam_date,
- daily_hours,
-}=req.body;
+    const {
+      exam_date,
+      daily_hours,
+    } = req.body;
 
 
-// 1. Generate plan with AI
+    // 1. Generate plan with AI
 
-const prompt = `
+    const prompt = `
 Create a study schedule.
 
 Exam date:
@@ -1172,103 +1210,103 @@ Format:
 
 
 
-const completion = await openai.chat.completions.create({
- model:"llama-3.1-8b-instant",
- messages:[
-  {
-   role:"system",
-   content:"You create study plans for students."
-  },
-  {
-   role:"user",
-   content:prompt
-  }
- ]
-});
+    const completion = await openai.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You create study plans for students."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+    });
 
 
-const aiPlan =
-completion.choices[0].message.content;
+    const aiPlan =
+      completion.choices[0].message.content;
 
 
-// remove markdown if AI adds ```json
-console.log("AI PLAN:");
-console.log(aiPlan);
-const cleanAI = aiPlan
-  .replace(/```json/g, "")
-  .replace(/```/g, "")
-  .trim();
+    // remove markdown if AI adds ```json
+    console.log("AI PLAN:");
+    console.log(aiPlan);
+    const cleanAI = aiPlan
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
-const jsonStart = cleanAI.indexOf("[");
-const jsonEnd = cleanAI.lastIndexOf("]");
+    const jsonStart = cleanAI.indexOf("[");
+    const jsonEnd = cleanAI.lastIndexOf("]");
 
-const sessions = JSON.parse(
-  cleanAI.substring(jsonStart, jsonEnd + 1)
-);
-
-
-
-const user_id = 1;
+    const sessions = JSON.parse(
+      cleanAI.substring(jsonStart, jsonEnd + 1)
+    );
 
 
-// 2. Create plan
 
-const planResult = await pool.query(
-`
+    const user_id = 1;
+
+
+    // 2. Create plan
+
+    const planResult = await pool.query(
+      `
 INSERT INTO study_plans
 (user_id, exam_date, daily_available_hours)
 VALUES($1,$2,$3)
 RETURNING *
 `,
-[
- user_id,
- exam_date,
- daily_hours
-]
-);
+      [
+        user_id,
+        exam_date,
+        daily_hours
+      ]
+    );
 
 
-const plan = planResult.rows[0];
+    const plan = planResult.rows[0];
 
 
-// 3. Save sessions
+    // 3. Save sessions
 
-for(const session of sessions){
+    for (const session of sessions) {
 
-await pool.query(
-`
+      await pool.query(
+        `
 INSERT INTO study_sessions
 (plan_id, start_time, duration, status)
 VALUES($1,$2,$3,$4)
 `,
-[
- plan.id,
- `${session.day} ${session.time}`,
- session.duration,
- "planned"
-]
-);
+        [
+          plan.id,
+          `${session.day} ${session.time}`,
+          session.duration,
+          "planned"
+        ]
+      );
 
-}
-
-
-
-res.json({
- plan,
- sessions
-});
+    }
 
 
-}catch(err){
 
-console.error("PLANNER ERROR:",err);
+    res.json({
+      plan,
+      sessions
+    });
 
-res.status(500).json({
-error:"Failed to create planner",
-message:err.message
-});
 
-}
+  } catch (err) {
+
+    console.error("PLANNER ERROR:", err);
+
+    res.status(500).json({
+      error: "Failed to create planner",
+      message: err.message
+    });
+
+  }
 
 });
 

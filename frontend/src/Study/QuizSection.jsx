@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
+import QuizModal from "../components/QuizModal";
+import QuizCard from "./QuizCard";
 
 const quizTypes = [
-  { id: 'mcq', label: 'Multiple Choice' },
-  { id: 'truefalse', label: 'True / False' },
-  { id: 'open', label: 'Open Questions' },
-  { id: 'flashcards', label: 'Flashcards' },
-  { id: 'fill', label: 'Fill in the Blanks' },
+ { id:'multiple_choice', label:'Multiple Choice'},
+ { id:'true_false', label:'True / False'},
+ { id:'open_question', label:'Open Questions'},
+ { id:'flashcard', label:'Flashcards'},
+ { id:'fill_blank', label:'Fill in the Blanks'},
 ];
 
 const difficulties = ['Easy', 'Medium', 'Hard'];
 const difficultyColors = ['var(--accent-green)', 'var(--accent-amber)', 'var(--accent-red)'];
 
 export default function QuizSection({ hasFiles, documentId }) {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [showQuiz, setShowQuiz] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
   const [difficulty, setDifficulty] = useState(1);
   const [numQuestions, setNumQuestions] = useState(10);
@@ -33,11 +37,13 @@ const submitQuiz = async () => {
 
   let score = 0;
 
-  quiz.questions.forEach((q,index)=>{
-    if(answers[index] === q.answer){
-      score++;
-    }
-  });
+<QuizCard
+  question={quiz.questions[currentQuestion]}
+  index={currentQuestion}
+  answer={answers[currentQuestion]}
+  selectAnswer={selectAnswer}
+  type={selectedType}
+/>
 
   console.log("SCORE:", score);
 
@@ -98,9 +104,15 @@ const submitQuiz = async () => {
         throw new Error(data.error);
       }
 
-      console.log("QUIZ DATA:", data);
+      console.log(
+  "QUESTIONS:",
+  JSON.stringify(data.questions, null, 2)
+);
 
       setQuiz(data);
+      setCurrentQuestion(0);
+      setAnswers({});
+      setShowQuiz(true);
 
     } catch (err) {
       console.error("QUIZ ERROR:", err);
@@ -189,132 +201,34 @@ const submitQuiz = async () => {
         ) : 'Generate quiz'}
       </button>
 
+{submitted && (
+<div>
+ Score:
+ {
+ Math.round(
+ Object.keys(answers).filter(
+ index=>answers[index]===quiz.questions[index].answer
+ ).length
+ /
+ quiz.questions.length
+ *100
+ )
+ }%
+</div>
+)}
+
       {!hasFiles && (
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, textAlign: 'center' }}>
           Add sources to generate quizzes
         </p>
       )}
 
-      {quiz && !loading && (
-        <div style={{
-          marginTop: 12,
-          padding: '12px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: 12.5,
-          color: 'var(--text-secondary)',
-          lineHeight: 1.6,
-        }}>
-
-          <div style={{
-            fontWeight: 600,
-            color: 'var(--accent-green)',
-            marginBottom: 10
-          }}>
-            ✓ Quiz generated
-          </div>
-
-
-          {quiz.questions.map((q, index) => (
-            <div
-              key={index}
-              style={{
-                marginBottom: 20,
-                paddingBottom: 15,
-                borderBottom: "1px solid var(--border)"
-              }}
-            >
-
-              <strong>
-                {index + 1}. {q.question}
-              </strong>
-
-
-              {/* MCQ */}
-              {q.options && q.options.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  {q.options.map(option => (
-                    <button
-                      key={option}
-                      onClick={() => selectAnswer(index, option)}
-                      style={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        marginBottom: 6,
-                        padding: "8px",
-                        borderRadius: 8,
-                        border:
-                          answers[index] === option
-                            ? "1px solid var(--accent-purple)"
-                            : "1px solid var(--border)",
-                        background:
-                          answers[index] === option
-                            ? "rgba(167,139,250,0.08)"
-                            : "transparent"
-                      }}
-                    >
-                      ○ {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-
-              {/* True / False */}
-              {selectedType === "truefalse" && (
-                <div style={{ marginTop: 10 }}>
-                  {["True", "False"].map(option => (
-                    <button
-                      key={option}
-                      onClick={() => selectAnswer(index, option)}
-                      style={{
-                        marginRight: 8,
-                        padding: "8px 15px",
-                        borderRadius: 8,
-                        border: "1px solid var(--border)"
-                      }}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-
-              {/* Open questions */}
-              {selectedType === "open" && (
-                <textarea
-                  value={answers[index] || ""}
-                  onChange={(e) =>
-                    selectAnswer(index, e.target.value)
-                  }
-                  placeholder="Your answer..."
-                  style={{
-                    width: "100%",
-                    marginTop: 10,
-                    minHeight: 70
-                  }}
-                />
-              )}
-
-            </div>
-          ))}
-        <button
-          onClick={submitQuiz}
-          style={{
-            width: "100%",
-            padding: 10,
-            borderRadius: 20,
-            background: "var(--accent-green)"
-          }}
-        >
-          Submit Quiz
-        </button>
-
-        </div>
-      )}
+      {showQuiz && (
+  <QuizModal
+    quiz={quiz}
+    onClose={() => setShowQuiz(false)}
+  />
+)}
 
     </div>
   );

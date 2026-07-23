@@ -21,7 +21,7 @@ export default function ChatbotInfoBox() {
       </div>
 
       <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: 12 }}>
-        Your AI assistant operates exclusively on the documents you upload — no internet access, ensuring private and focused study sessions.
+        Your AI assistant operates exclusively on the documents you upload no internet access, ensuring private and focused study sessions.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>

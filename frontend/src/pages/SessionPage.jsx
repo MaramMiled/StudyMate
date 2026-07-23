@@ -265,7 +265,7 @@ if (!session) return <div style={{ padding: 40 }}>Session not found</div>;
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: '280px 1fr 320px',
+        gridTemplateColumns: '340px 1fr 380px',
         overflow: 'hidden'
       }}>
 
